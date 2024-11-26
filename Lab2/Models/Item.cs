@@ -2,7 +2,7 @@
 {
     public class Item
     {
-        public int Id { get; set; }
+        public string? ID { get; set; }
         public string Value { get; set; }
     }
 }

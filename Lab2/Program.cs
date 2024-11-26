@@ -1,17 +1,26 @@
-using Lab2.Repositories;
+using StackExchange.Redis;
+using Lab2.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+string? connStr = builder.Configuration.GetConnectionString("ItemsDataConnection");
+if(connStr!=null)
+{
+    builder.Services.AddSingleton<IConnectionMultiplexer>(
+        ConnectionMultiplexer.Connect(connStr)
+        );
+}
+
+builder.Services.AddScoped<IItemsData, ItemsData>();
 
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
+
+
 builder.Services.AddSwaggerGen();
 
 
-
-builder.Services.AddSingleton(new Repository("data.txt"));
 
 var app = builder.Build();
 
@@ -22,8 +31,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseAuthorization();
 
 app.MapControllers();
 
