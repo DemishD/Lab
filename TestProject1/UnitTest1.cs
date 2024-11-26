@@ -1,71 +1,76 @@
 using Moq;
+using Xunit;
 using Lab2;
 using Lab2.Controllers;
-using Lab2.Repositories;
 using Lab2.Models;
 using Microsoft.AspNetCore.Mvc;
+using Lab2.Data;
 
 namespace Lab2.TestProject1
 {
     public class UnitTest1
     {
-        private readonly string _filePath;
-
-        public UnitTest1()
+        public class ItemControllerTests
         {
-            _filePath = Path.GetTempFileName();
-        }
+            private readonly Mock<IItemsData> _mockItemsData;
+            private readonly ItemController _controller;
 
-        [Fact]
-        public void LoadDataFromFile_ShouldLoadCorrectly()
-        {
-           
-            var data = new[]
+            public ItemControllerTests()
             {
-            "1 = Item 1",
-            "2 = Item 2"
-        };
-            File.WriteAllLines(_filePath, data);
-            var repository = new Repository(_filePath);
+                _mockItemsData = new Mock<IItemsData>();
+                _controller = new ItemController(_mockItemsData.Object);
+            }
 
-            var items = repository.Items;
-
-            Assert.Equal(2, items.Count);
-            Assert.Equal(1, items[0].Id);
-            Assert.Equal("Item 1", items[0].Value);
-        }
-
-        [Fact]
-        public void SaveDataToFile_ShouldSaveCorrectly()
-        {
-            var repository = new Repository(_filePath);
-            var newItem = new Item { Id = 3, Value = "New Item" };
-            repository.Items.Add(newItem);
-
-            repository.SaveDataToFile();
-
-            var lines = File.ReadAllLines(_filePath);
-            Assert.Contains("3 = New Item", lines);
-        }
-
-        [Fact]
-        public void UpdateData_ShouldUpdateCorrectly()
-        {
-            var repository = new Repository(_filePath);
-            repository.Items.Add(new Item { Id = 1, Value = "Old Value" });
-
-            repository.Items[0].Value = "Updated Value";
-            repository.SaveDataToFile();
-
-            var updatedItem = repository.Items[0];
-            Assert.Equal("Updated Value", updatedItem.Value);
-        }
-
-        ~UnitTest1()
-        {
-            if (File.Exists(_filePath))
+            [Fact]
+            public void CreateItem()
             {
-                File.Delete(_filePath);
+                var newItem = new Item { ID = "1", Value = "TestValue" };
+                _mockItemsData.Setup(x => x.CreateItem(newItem)).Returns(newItem);
+
+                var result = _controller.CreateItem(newItem);
+
+                var okResult = Assert.IsType<OkObjectResult>(result);
+                Assert.Equal(newItem, okResult.Value);
+            }
+
+            [Fact]
+            public void GetAllItems()
+            {
+                var items = new List<Item>
+            {
+                new Item { ID = "1", Value = "Test1" },
+                new Item { ID = "2", Value = "Test2" }
+            };
+                _mockItemsData.Setup(x => x.GetAllItems()).Returns(items);
+
+                var result = _controller.GetAllItems();
+
+                var okResult = Assert.IsType<OkObjectResult>(result);
+                var returnedItems = Assert.IsAssignableFrom<IEnumerable<Item>>(okResult.Value);
+                Assert.Equal(items, returnedItems);
+            }
+
+            [Fact]
+            public void GetItemById()
+            {
+                string id = "1";
+                _mockItemsData.Setup(x => x.GetItemById(id)).Returns((Item?)null);
+
+                var result = _controller.GetItemById(id);
+
+                Assert.IsType<NotFoundResult>(result);
+            }
+
+            [Fact]
+            public void DeleteItem()
+            {
+                string id = "1";
+                _mockItemsData.Setup(x => x.DeleteItemById(id)).Returns(true);
+
+                var result = _controller.DeleteItem(id);
+
+                var okResult = Assert.IsType<OkObjectResult>(result);
+                Assert.True((bool)okResult.Value);
             }
         }
     }
